@@ -803,7 +803,9 @@ button:active {
   justify-content: center;
   width: 100%;
   height: 100%;
+  touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .mermaid-content svg {
@@ -811,6 +813,9 @@ button:active {
   width: 100% !important;
   height: 100% !important;
   max-width: none !important;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .mermaid-error {
@@ -946,6 +951,316 @@ export const VIEW_SCRIPT = `
     } catch {}
   }
 
+  function distance(first, second) {
+    return Math.hypot(first.x - second.x, first.y - second.y);
+  }
+
+  function midpoint(first, second) {
+    return {
+      x: (first.x + second.x) / 2,
+      y: (first.y + second.y) / 2,
+    };
+  }
+
+  function svgPointFromClient(svg, point) {
+    const svgPoint = svg.createSVGPoint();
+    svgPoint.x = point.x;
+    svgPoint.y = point.y;
+    return svgPoint.matrixTransform(svg.getScreenCTM().inverse());
+  }
+
+  function gestureFromPoints(points) {
+    if (points.length < 2) return null;
+
+    const first = points[0];
+    const second = points[1];
+
+    return {
+      center: midpoint(first, second),
+      distance: Math.max(1, distance(first, second)),
+    };
+  }
+
+  function preventEvent(event) {
+    if (event.cancelable) event.preventDefault();
+  }
+
+  function makeTouchEventsHandler(frame) {
+    const cleanup = [];
+
+    return {
+      haltEventListeners: ["touchstart", "touchmove", "touchend", "touchleave", "touchcancel"],
+      init: function (options) {
+        const svg = options.svgElement;
+        const panZoom = options.instance;
+        const activePointers = new Map();
+        let previousSinglePoint = null;
+        let previousGesture = null;
+        let tapStart = null;
+        let lastTap = null;
+
+        function add(target, type, handler, listenerOptions) {
+          target.addEventListener(type, handler, listenerOptions);
+          cleanup.push(function () {
+            target.removeEventListener(type, handler, listenerOptions);
+          });
+        }
+
+        function clearGesture() {
+          activePointers.clear();
+          previousSinglePoint = null;
+          previousGesture = null;
+          tapStart = null;
+          frame.classList.remove("is-grabbing");
+        }
+
+        function startTap(point) {
+          tapStart = {
+            x: point.x,
+            y: point.y,
+            moved: false,
+            multi: false,
+          };
+        }
+
+        function markTapMovement(point) {
+          if (tapStart && distance(tapStart, point) > 8) {
+            tapStart.moved = true;
+          }
+        }
+
+        function handleTap(point) {
+          const now = Date.now();
+
+          if (lastTap && now - lastTap.time <= 300 && distance(lastTap, point) <= 28) {
+            resetPanZoom(panZoom);
+            lastTap = null;
+            return;
+          }
+
+          lastTap = {
+            x: point.x,
+            y: point.y,
+            time: now,
+          };
+        }
+
+        function panBy(delta) {
+          if (delta.x || delta.y) {
+            panZoom.panBy(delta);
+          }
+        }
+
+        function applyMultiPointGesture(points) {
+          const nextGesture = gestureFromPoints(points);
+          if (!nextGesture) return;
+
+          if (previousGesture) {
+            const scale = Math.min(4, Math.max(0.25, nextGesture.distance / previousGesture.distance));
+            panZoom.zoomAtPointBy(scale, svgPointFromClient(svg, nextGesture.center));
+            panBy({
+              x: nextGesture.center.x - previousGesture.center.x,
+              y: nextGesture.center.y - previousGesture.center.y,
+            });
+          }
+
+          previousGesture = nextGesture;
+        }
+
+        function usePoints(points) {
+          if (points.length === 1) {
+            const point = points[0];
+            markTapMovement(point);
+
+            if (previousSinglePoint) {
+              panBy({
+                x: point.x - previousSinglePoint.x,
+                y: point.y - previousSinglePoint.y,
+              });
+            }
+
+            previousSinglePoint = point;
+            previousGesture = null;
+            return;
+          }
+
+          if (points.length > 1) {
+            if (tapStart) tapStart.multi = true;
+            previousSinglePoint = null;
+            applyMultiPointGesture(points);
+          }
+        }
+
+        if (window.PointerEvent) {
+          function pointerPoint(event) {
+            return {
+              id: event.pointerId,
+              x: event.clientX,
+              y: event.clientY,
+            };
+          }
+
+          function currentPointerPoints() {
+            return Array.from(activePointers.values());
+          }
+
+          function onPointerDown(event) {
+            if (event.pointerType === "mouse") return;
+
+            preventEvent(event);
+
+            const point = pointerPoint(event);
+            activePointers.set(event.pointerId, point);
+            frame.classList.add("is-grabbing");
+
+            if (activePointers.size === 1) {
+              previousSinglePoint = point;
+              previousGesture = null;
+              startTap(point);
+            } else {
+              if (tapStart) tapStart.multi = true;
+              previousSinglePoint = null;
+              previousGesture = gestureFromPoints(currentPointerPoints());
+            }
+
+            if (frame.setPointerCapture) {
+              try {
+                frame.setPointerCapture(event.pointerId);
+              } catch {}
+            }
+          }
+
+          function onPointerMove(event) {
+            if (!activePointers.has(event.pointerId)) return;
+
+            preventEvent(event);
+
+            const point = pointerPoint(event);
+            activePointers.set(event.pointerId, point);
+            usePoints(currentPointerPoints());
+          }
+
+          function onPointerEnd(event) {
+            if (!activePointers.has(event.pointerId)) return;
+
+            preventEvent(event);
+
+            const point = pointerPoint(event);
+            markTapMovement(point);
+
+            if (tapStart && activePointers.size === 1 && !tapStart.moved && !tapStart.multi) {
+              handleTap(point);
+            }
+
+            activePointers.delete(event.pointerId);
+
+            if (frame.releasePointerCapture) {
+              try {
+                frame.releasePointerCapture(event.pointerId);
+              } catch {}
+            }
+
+            const points = currentPointerPoints();
+
+            if (!points.length) {
+              clearGesture();
+              return;
+            }
+
+            if (points.length === 1) {
+              previousSinglePoint = points[0];
+              previousGesture = null;
+            } else {
+              previousSinglePoint = null;
+              previousGesture = gestureFromPoints(points);
+            }
+          }
+
+          add(frame, "pointerdown", onPointerDown);
+          add(frame, "pointermove", onPointerMove);
+          add(frame, "pointerup", onPointerEnd);
+          add(frame, "pointercancel", onPointerEnd);
+          add(frame, "lostpointercapture", onPointerEnd);
+          return;
+        }
+
+        function touchPoint(touch) {
+          return {
+            id: touch.identifier,
+            x: touch.clientX,
+            y: touch.clientY,
+          };
+        }
+
+        function touchPoints(touches) {
+          return Array.from(touches).map(touchPoint);
+        }
+
+        function syncTouchState(points) {
+          if (!points.length) {
+            clearGesture();
+            return;
+          }
+
+          if (points.length === 1) {
+            previousSinglePoint = points[0];
+            previousGesture = null;
+          } else {
+            previousSinglePoint = null;
+            previousGesture = gestureFromPoints(points);
+          }
+        }
+
+        function onTouchStart(event) {
+          preventEvent(event);
+
+          const points = touchPoints(event.touches);
+          frame.classList.add("is-grabbing");
+
+          if (points.length === 1) {
+            previousSinglePoint = points[0];
+            previousGesture = null;
+            startTap(points[0]);
+            return;
+          }
+
+          if (tapStart) tapStart.multi = true;
+          syncTouchState(points);
+        }
+
+        function onTouchMove(event) {
+          preventEvent(event);
+          usePoints(touchPoints(event.touches));
+        }
+
+        function onTouchEnd(event) {
+          preventEvent(event);
+
+          if (event.changedTouches.length) {
+            const point = touchPoint(event.changedTouches[0]);
+            markTapMovement(point);
+
+            if (tapStart && !event.touches.length && !tapStart.moved && !tapStart.multi) {
+              handleTap(point);
+            }
+          }
+
+          syncTouchState(touchPoints(event.touches));
+        }
+
+        const activeTouchListener = { passive: false };
+        add(frame, "touchstart", onTouchStart, activeTouchListener);
+        add(frame, "touchmove", onTouchMove, activeTouchListener);
+        add(frame, "touchend", onTouchEnd, activeTouchListener);
+        add(frame, "touchcancel", onTouchEnd, activeTouchListener);
+      },
+      destroy: function () {
+        while (cleanup.length) cleanup.pop()();
+        frame.classList.remove("is-grabbing");
+      },
+    };
+  }
+
   function attachPanZoom(frame, content, options = {}) {
     const dynamicHeight = Boolean(options.dynamicHeight);
     const listenerOptions = options.signal
@@ -975,6 +1290,7 @@ export const VIEW_SCRIPT = `
       zoomScaleSensitivity: 0.35,
       dblClickZoomEnabled: false,
       mouseWheelZoomEnabled: true,
+      customEventsHandler: makeTouchEventsHandler(frame),
     });
 
     const refit = () => fitPanZoom(frame, content, panZoom, dynamicHeight);
