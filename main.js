@@ -60,7 +60,7 @@ const md = new MarkdownIt({
   .use(markdownItMark)
   .use(markdownItSub)
   .use(markdownItSup)
-  .use(markdownItTaskLists, { enabled: false });
+  .use(markdownItTaskLists, { enabled: true });
 
 const defaultFence = md.renderer.rules.fence;
 
@@ -253,6 +253,32 @@ ${scripts}
 </head>
 <body>
 ${body}
+<script type="module">
+(() => {
+  const checkboxes = Array.from(document.querySelectorAll(".task-list-item-checkbox"));
+  if (!checkboxes.length) return;
+
+  const storageKey = "tinypaste:tasks:" + location.pathname;
+  let saved = [];
+  try {
+    saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
+  } catch {
+    saved = [];
+  }
+
+  checkboxes.forEach((checkbox, index) => {
+    checkbox.disabled = false;
+    if (index < saved.length) checkbox.checked = saved[index];
+
+    checkbox.addEventListener("change", () => {
+      const states = checkboxes.map((c) => c.checked);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(states));
+      } catch {}
+    });
+  });
+})();
+</script>
 </body>
 </html>`;
 }
@@ -753,7 +779,7 @@ button:active {
 .markdown .task-list-item-checkbox {
   margin: 0 0.45em 0 -1.1em;
   accent-color: var(--fg);
-  pointer-events: none;
+  cursor: pointer;
 }
 
 .markdown table {
