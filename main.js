@@ -1,4 +1,5 @@
 import MarkdownIt from "npm:markdown-it@14.1.0";
+import hljs from "npm:highlight.js@11.11.1";
 import markdownItAbbr from "npm:markdown-it-abbr@2.0.0";
 import markdownItDeflist from "npm:markdown-it-deflist@3.0.0";
 import markdownItFootnote from "npm:markdown-it-footnote@4.0.0";
@@ -25,10 +26,31 @@ const RESERVED_IDS = new Set([
 const DEFAULT_MAX_MARKDOWN_BYTES = 128 * 1024;
 const encoder = new TextEncoder();
 
+function highlightCode(code, language) {
+  const lang = language?.trim().toLowerCase();
+
+  if (lang && hljs.getLanguage(lang)) {
+    try {
+      const result = hljs.highlight(code, {
+        language: lang,
+        ignoreIllegals: true,
+      });
+      return `<pre class="hljs"><code class="language-${
+        escapeHtml(lang)
+      }">${result.value}</code></pre>`;
+    } catch {
+      // fall back to escaped plain text
+    }
+  }
+
+  return `<pre class="hljs"><code>${escapeHtml(code)}</code></pre>`;
+}
+
 const md = new MarkdownIt({
   html: false,
   linkify: true,
   typographer: true,
+  highlight: highlightCode,
 })
   .use(markdownItAbbr)
   .use(markdownItDeflist)
@@ -225,6 +247,7 @@ function page(title, body, scripts = "") {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css">
 <link rel="stylesheet" href="/style.css">
 ${scripts}
 </head>
