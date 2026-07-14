@@ -336,7 +336,7 @@ function viewPage(id, paste) {
     title,
     `<main class="shell">
   ${navHtml(`<a href="/${id}.md">raw</a>`)}
-  <article class="markdown">${paste.html}</article>
+  <article class="markdown">${renderMarkdown(paste.markdown)}</article>
 </main>`,
     `<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 <script type="module">
@@ -347,9 +347,26 @@ await import("/view.js");
   );
 }
 
+function normalizePaste(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  if (typeof value.markdown !== "string") {
+    return null;
+  }
+
+  return {
+    createdAt: typeof value.createdAt === "string"
+      ? value.createdAt
+      : "",
+    markdown: value.markdown,
+  };
+}
+
 async function getPaste(kv, id) {
   const entry = await kv.get(["paste", id]);
-  return entry.value || null;
+  return normalizePaste(entry.value);
 }
 
 async function savePaste(kv, id, paste) {
@@ -426,7 +443,6 @@ async function createPaste(request, kv, config, info) {
 
   const paste = {
     createdAt: new Date().toISOString(),
-    html: renderMarkdown(markdown),
     markdown,
   };
 
@@ -587,7 +603,11 @@ export function createHandler(options = {}) {
           throw makeHttpError(404, "Paste not found.");
         }
 
-        return response(paste.html, 200, "text/html; charset=utf-8");
+        return response(
+          renderMarkdown(paste.markdown),
+          200,
+          "text/html; charset=utf-8",
+        );
       }
 
       const viewMatch = pathname.match(/^\/([0-9a-zA-Z]+)$/);
