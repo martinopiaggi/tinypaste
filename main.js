@@ -284,7 +284,7 @@ ${body}
 </html>`;
 }
 
-function navHtml(extra = "", options = {}) {
+function navHtml(options = {}) {
   const about = options.showAbout
     ? '<a class="about-link" href="/about">about</a>'
     : "";
@@ -292,7 +292,6 @@ function navHtml(extra = "", options = {}) {
   return `<nav aria-label="Main">
     <a class="brand" href="/">tinypaste</a>
     ${about}
-    ${extra}
   </nav>`;
 }
 
@@ -304,7 +303,7 @@ function editorPage(error = "") {
   return page(
     "tinypaste",
     `<main class="shell">
-  ${navHtml("", { showAbout: true })}
+  ${navHtml({ showAbout: true })}
   ${errorHtml}
   <form method="post" action="/">
     <label class="visually-hidden" for="markdown">Markdown</label>
@@ -329,13 +328,12 @@ async function aboutPage() {
   );
 }
 
-function viewPage(id, paste) {
+function viewPage(paste) {
   const title = titleFromMarkdown(paste.markdown);
 
   return page(
     title,
     `<main class="shell">
-  ${navHtml(`<a href="/${id}.md">raw</a>`)}
   <article class="markdown">${renderMarkdown(paste.markdown)}</article>
 </main>`,
     `<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
@@ -620,7 +618,7 @@ export function createHandler(options = {}) {
           throw makeHttpError(404, "Paste not found.");
         }
 
-        return response(viewPage(id, paste), 200, "text/html; charset=utf-8");
+        return response(viewPage(paste), 200, "text/html; charset=utf-8");
       }
 
       return response("Not found.\n", 404);
