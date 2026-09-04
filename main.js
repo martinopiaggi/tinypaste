@@ -25,6 +25,8 @@ const RESERVED_IDS = new Set([
   "view",
 ]);
 const DEFAULT_MAX_MARKDOWN_BYTES = 128 * 1024;
+const SOCIAL_DESCRIPTION_LENGTH = 200;
+const SOCIAL_TITLE_LENGTH = 80;
 const encoder = new TextEncoder();
 
 function highlightCode(code, language) {
@@ -132,13 +134,67 @@ function makeHttpError(status, message) {
   return error;
 }
 
-function titleFromMarkdown(markdown) {
-  const line = markdown
-    .split(/\r?\n/)
-    .map((value) => value.replace(/^#+\s*/, "").trim())
-    .find(Boolean);
+function truncateText(value, maxLength) {
+  const characters = [...value];
 
-  return line ? line.slice(0, 80) : "tinypaste";
+  if (characters.length <= maxLength) {
+    return value;
+  }
+
+  const candidate = characters.slice(0, maxLength - 1).join("").trimEnd();
+  const lastSpace = candidate.lastIndexOf(" ");
+  const cutoff = lastSpace >= Math.floor(maxLength * 0.6)
+    ? candidate.slice(0, lastSpace)
+    : candidate;
+
+  return `${cutoff}…`;
+}
+
+function inlineText(token) {
+  return (token.children || [])
+    .map((child) => {
+      if (["text", "code_inline", "image"].includes(child.type)) {
+        return child.content;
+      }
+
+      if (["softbreak", "hardbreak"].includes(child.type)) {
+        return " ";
+      }
+
+      return "";
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function socialPreviewFromMarkdown(markdown) {
+  const blocks = md.parse(markdown, {})
+    .map((token) => {
+      if (token.type === "inline") {
+        return inlineText(token);
+      }
+
+      if (["fence", "code_block"].includes(token.type)) {
+        return token.content.replace(/\s+/g, " ").trim();
+      }
+
+      return "";
+    })
+    .filter(Boolean);
+
+  const plainText = blocks.join(" ");
+  const fallbackDescription = "A Markdown paste shared with tinypaste.";
+
+  return {
+    title: blocks.length
+      ? truncateText(blocks[0], SOCIAL_TITLE_LENGTH)
+      : "tinypaste",
+    description: truncateText(
+      plainText || fallbackDescription,
+      SOCIAL_DESCRIPTION_LENGTH,
+    ),
+  };
 }
 
 function publicUrl(request, config, path) {
@@ -240,13 +296,14 @@ function corsHeaders(headers = {}) {
   };
 }
 
-function page(title, body, scripts = "") {
+function page(title, body, scripts = "", head = "") {
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
+${head}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css">
 <link rel="stylesheet" href="/style.css">
@@ -328,11 +385,14 @@ async function aboutPage() {
   );
 }
 
-function viewPage(paste) {
-  const title = titleFromMarkdown(paste.markdown);
+function viewPage(paste, canonicalUrl) {
+  const preview = socialPreviewFromMarkdown(paste.markdown);
+  const title = escapeHtml(preview.title);
+  const description = escapeHtml(preview.description);
+  const url = escapeHtml(canonicalUrl);
 
   return page(
-    title,
+    preview.title,
     `<main class="shell">
   <article class="markdown">${renderMarkdown(paste.markdown)}</article>
 </main>`,
@@ -342,6 +402,16 @@ import mermaid from "https://esm.sh/mermaid@11.14.0";
 window.mermaid = mermaid;
 await import("/view.js");
 </script>`,
+    `<meta name="description" content="${description}">
+<link rel="canonical" href="${url}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="tinypaste">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${description}">
+<meta property="og:url" content="${url}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${title}">
+<meta name="twitter:description" content="${description}">`,
   );
 }
 
@@ -355,9 +425,7 @@ function normalizePaste(value) {
   }
 
   return {
-    createdAt: typeof value.createdAt === "string"
-      ? value.createdAt
-      : "",
+    createdAt: typeof value.createdAt === "string" ? value.createdAt : "",
     markdown: value.markdown,
   };
 }
@@ -618,7 +686,12 @@ export function createHandler(options = {}) {
           throw makeHttpError(404, "Paste not found.");
         }
 
-        return response(viewPage(paste), 200, "text/html; charset=utf-8");
+        const canonicalUrl = publicUrl(request, config, pathname);
+        return response(
+          viewPage(paste, canonicalUrl),
+          200,
+          "text/html; charset=utf-8",
+        );
       }
 
       return response("Not found.\n", 404);
