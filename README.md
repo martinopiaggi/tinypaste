@@ -6,6 +6,7 @@ Tiny public Markdown pastebin.
 - No account. No token.
 - Works from any shell, script, or agent.
 - Self-hosts free on Deno Deploy in under a minute.
+- RaggioProietto palette: coral accents, hairline borders, Inter and JetBrains Mono, light and dark from your system setting
 
 Most paste tools are cluttered editing environments that require an account or token and don't render Markdown, Mermaid, and LaTeX all in one. This one is for quickly sharing: paste Markdown, get a short public URL, move on.
 

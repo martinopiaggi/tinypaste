@@ -304,8 +304,15 @@ function page(title, body, scripts = "", head = "") {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 ${head}
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101010" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=JetBrains+Mono:wght@100..800&amp;display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="/style.css">
 ${scripts}
 </head>
@@ -706,39 +713,112 @@ export function createHandler(options = {}) {
 }
 
 export const STYLE = `
+/* RaggioProietto palette (Raycast-derived: coral #ff6363 on grayscale
+   surfaces, hairline borders, 6/8/12px radii, Inter + JetBrains Mono).
+   Ported from the summarize webapp theme and the RaggioProietto Obsidian
+   theme. Unofficial. Not affiliated with Raycast or OpenAI. */
 :root {
   color-scheme: light;
   --bg: #ffffff;
-  --fg: #111111;
-  --muted: #666666;
-  --line: #dddddd;
-  --accent: #111111;
-  --danger: #9f1d20;
-  --surface: #fafafa;
+  --text: #1a1a1a;
+  --secondary: #f7f7f7;
+  --elevated: #efefef;
+  --row: rgba(0, 0, 0, 0.045);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: #e4e4e4;
+  --muted: #6b6b6b;
+  --faint: #707070;
+  --accent: #ff6363;
+  --accent-hover: #e23e3e;
+  --on-accent: #101010;
+  --link: #b12424;
+  --link-hover: #8f1c1c;
+  --selection: rgba(255, 99, 99, 0.18);
+  --highlight: rgba(255, 99, 99, 0.22);
+  --focus: rgba(255, 99, 99, 0.55);
+  --danger: #b12424;
+  --chart-1: #b12424;
+  --chart-2: #c75d07;
+  --chart-3: #c7920e;
+  --chart-4: #006b4f;
+  --chart-5: #0f7a75;
+  --chart-6: #0b6eaa;
+  --chart-7: #6e56cf;
+  --chart-8: #c41d7f;
+  --radius-s: 6px;
+  --radius-m: 8px;
+  --shell-width: 42rem;
+  --font-ui: Inter, "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Consolas, monospace;
+  accent-color: var(--accent);
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #101010;
+    --text: #f4f4f6;
+    --secondary: #141414;
+    --elevated: #1a1a1a;
+    --row: rgba(255, 255, 255, 0.06);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: #242728;
+    --muted: #9c9c9d;
+    --faint: #8f8f90;
+    --accent: #ff6363;
+    --accent-hover: #ff8585;
+    --on-accent: #101010;
+    --link: #ff6363;
+    --link-hover: #ff8585;
+    --selection: rgba(255, 99, 99, 0.28);
+    --highlight: rgba(255, 99, 99, 0.22);
+    --focus: rgba(255, 99, 99, 0.55);
+    --danger: #ff6363;
+    --chart-1: #ff6363;
+    --chart-2: #ff9217;
+    --chart-3: #ffc531;
+    --chart-4: #59d499;
+    --chart-5: #52eee5;
+    --chart-6: #56c2ff;
+    --chart-7: #c7a6ff;
+    --chart-8: #cf2f98;
+  }
 }
 
 * { box-sizing: border-box; }
 
-html { font-size: 18px; }
+html { font-size: 16px; }
 
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--fg);
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  line-height: 1.55;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-feature-settings: "ss03" 1, "calt" 1, "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
 }
 
 a {
-  color: var(--accent);
-  text-decoration-thickness: 0.08em;
+  color: var(--link);
+  text-decoration-thickness: 1px;
   text-underline-offset: 0.16em;
+}
+
+a:hover { color: var(--link-hover); }
+
+::selection {
+  background: var(--selection);
+  color: var(--text);
 }
 
 a:focus-visible,
 textarea:focus-visible,
-button:focus-visible {
-  outline: 2px solid var(--accent);
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -756,113 +836,196 @@ button:focus-visible {
 }
 
 .shell {
-  width: min(100% - 32px, 780px);
+  width: min(100% - 32px, var(--shell-width));
   margin: 0 auto;
   padding: 28px 0 56px;
 }
 
 nav {
   display: flex;
-  gap: 18px;
+  gap: 10px;
   align-items: baseline;
-  margin-bottom: 26px;
-  font-size: 0.88rem;
+  margin-bottom: 24px;
 }
+
+nav a {
+  border-radius: var(--radius-s);
+  padding: 3px 8px;
+  text-decoration: none;
+}
+
+nav a:hover { background: var(--row); }
 
 .brand {
-  color: var(--fg);
-  font-weight: 700;
+  margin-left: -8px;
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.about-link { color: var(--muted); }
+.about-link {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.about-link:hover { color: var(--text); }
 
 form {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 textarea {
   width: 100%;
-  min-height: min(64vh, 680px);
+  min-height: min(64vh, 640px);
   resize: vertical;
-  border: 1px solid var(--line);
-  border-radius: 0;
-  background: #ffffff;
-  color: var(--fg);
-  padding: 16px;
-  font: inherit;
-  line-height: 1.45;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--secondary);
+  color: var(--text);
+  caret-color: var(--text);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  transition: border-color 0.12s ease;
 }
 
+textarea:focus-visible { border-color: var(--accent); }
+
 textarea::placeholder {
-  color: var(--muted);
+  color: var(--faint);
   opacity: 1;
 }
 
 button {
   justify-self: start;
-  border: 1px solid var(--fg);
-  border-radius: 0;
-  background: var(--fg);
-  color: var(--bg);
-  padding: 8px 14px;
-  font: inherit;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-s);
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 9px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-transform: uppercase;
   cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 button:hover {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
-button:active {
-  background: var(--muted);
-  border-color: var(--muted);
-}
+button:active { background: var(--accent-hover); }
 
 .error {
-  margin: 0 0 18px;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--danger);
+  border-radius: var(--radius-m);
+  background: var(--elevated);
   color: var(--danger);
+  padding: 10px 12px;
+  font-size: 0.9375rem;
 }
 
 .markdown { overflow-wrap: break-word; }
 .markdown > *:first-child { margin-top: 0; }
 
+.markdown p { margin: 0 0 1.25rem; }
+
 .markdown h1,
 .markdown h2,
-.markdown h3 {
-  line-height: 1.15;
-  margin: 1.7em 0 0.55em;
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 1.75rem 0 0.6rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.markdown h1 { font-size: 2rem; }
-.markdown h2 { font-size: 1.45rem; }
-.markdown h3 { font-size: 1.15rem; }
+.markdown h1 { font-size: 1.5rem; }
+.markdown h2 { font-size: 1.25rem; }
+.markdown h3 { font-size: 1.1rem; font-weight: 550; }
+.markdown h4 { font-size: 1rem; font-weight: 550; }
+.markdown h5 { font-size: 0.9rem; font-weight: 500; }
+.markdown h6 { font-size: 0.85rem; font-weight: 500; color: var(--muted); }
 
 .markdown pre,
 .markdown code {
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 0.88em;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+.markdown code {
+  border-radius: 4px;
+  background: var(--secondary);
+  padding: 0.12em 0.35em;
 }
 
 .markdown pre {
   overflow: auto;
-  border-left: 3px solid var(--line);
-  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--secondary);
   padding: 12px 14px;
+  line-height: 1.55;
+}
+
+.markdown pre code {
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .markdown blockquote {
-  margin-left: 0;
-  padding-left: 18px;
-  border-left: 3px solid var(--line);
+  margin: 0 0 1.25rem;
+  padding-left: 16px;
+  border-left: 2px solid var(--border-strong);
   color: var(--muted);
 }
 
-.markdown img { max-width: 100%; }
+.markdown hr {
+  margin: 1.75rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.markdown mark {
+  border-radius: 3px;
+  background: var(--highlight);
+  color: var(--text);
+  padding: 0 0.15em;
+}
+
+.markdown ins {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
+
+.markdown abbr[title] {
+  text-decoration: underline dotted var(--faint);
+  text-underline-offset: 0.16em;
+  cursor: help;
+}
+
+.markdown img {
+  max-width: 100%;
+  border-radius: var(--radius-s);
+}
 
 .markdown ul,
-.markdown ol { padding-left: 1.35em; }
+.markdown ol { margin: 0 0 1.25rem; padding-left: 1.35em; }
 
 .markdown li + li { margin-top: 0.18em; }
 .markdown .contains-task-list { padding-left: 1.1em; }
@@ -870,36 +1033,83 @@ button:active {
 
 .markdown .task-list-item-checkbox {
   margin: 0 0.45em 0 -1.1em;
-  accent-color: var(--fg);
+  accent-color: var(--accent);
   cursor: pointer;
+}
+
+.markdown dl { margin: 0 0 1.25rem; }
+.markdown dt { font-weight: 600; }
+.markdown dd {
+  margin: 0 0 0.4rem 1.35em;
+  color: var(--muted);
+}
+
+.markdown .footnotes {
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.9rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.markdown .footnotes-sep { display: none; }
+
+.markdown .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
 }
 
 .markdown table {
   width: 100%;
-  border-collapse: collapse;
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
 }
 
 .markdown th,
 .markdown td {
-  border-bottom: 1px solid var(--line);
-  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--border);
+  padding: 7px 10px;
   text-align: left;
 }
 
-.mermaid-diagram {
-  position: relative;
-  margin: 1.45rem 0;
-  border: 1px solid var(--line);
-  background: #ffffff;
+.markdown th + th,
+.markdown td + td { border-left: 1px solid var(--border); }
+
+.markdown th {
+  background: var(--secondary);
+  font-weight: 600;
 }
 
-.mermaid-source { margin: 0; }
+.markdown tr:last-child td { border-bottom: 0; }
+
+.mermaid-diagram {
+  position: relative;
+  margin: 0 0 1.45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--secondary);
+  overflow: hidden;
+}
+
+.mermaid-source {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 14px;
+  color: var(--muted);
+}
 
 .mermaid-frame {
   position: relative;
   height: clamp(260px, 56vh, 620px);
   overflow: hidden;
-  background: #ffffff;
+  background: var(--secondary);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -909,33 +1119,40 @@ button:active {
 .mermaid-frame.is-grabbing { cursor: grabbing; }
 
 .mermaid-frame:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: 2px;
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }
 
-.mermaid-open,
-.mermaid-close {
-  border: 1px solid var(--line);
-  background: #ffffff;
+button.mermaid-open,
+button.mermaid-close {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-s);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
   color: var(--muted);
   padding: 4px 8px;
-  font: inherit;
-  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   line-height: 1.2;
+  text-transform: uppercase;
   cursor: pointer;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
-.mermaid-open {
+button.mermaid-open {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 2;
 }
 
-.mermaid-open:hover,
-.mermaid-close:hover {
-  color: var(--fg);
-  border-color: var(--fg);
+button.mermaid-open:hover,
+button.mermaid-close:hover {
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .mermaid-content {
@@ -961,7 +1178,9 @@ button:active {
 
 .mermaid-error {
   padding: 12px 14px;
-  color: var(--muted);
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
 }
 
 .mermaid-fullscreen {
@@ -970,7 +1189,7 @@ button:active {
   z-index: 1000;
   display: grid;
   grid-template-rows: auto 1fr;
-  background: #ffffff;
+  background: var(--bg);
 }
 
 .mermaid-fullscreen[hidden] { display: none; }
@@ -978,13 +1197,14 @@ button:active {
 .mermaid-fullscreen-bar {
   display: flex;
   justify-content: flex-end;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border);
   padding: 8px;
 }
 
 .mermaid-fullscreen-frame {
   position: relative;
   overflow: hidden;
+  background: var(--bg);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -993,11 +1213,76 @@ button:active {
 .mermaid-fullscreen-frame:active { cursor: grabbing; }
 .mermaid-fullscreen-frame.is-grabbing { cursor: grabbing; }
 
+/* Mermaid's base theme hardcodes a few diagram parts that ignore
+   themeVariables: pie slice and legend colours (pie1..12), the class
+   diagram cScale boxes and the arrowheads. Presentation attributes lose
+   to stylesheet rules and inline styles need !important, so pin them. */
+.mermaid-content svg path.pieCircle:nth-of-type(8n + 1) { fill: var(--chart-1); }
+.mermaid-content svg path.pieCircle:nth-of-type(8n + 2) { fill: var(--chart-2); }
+.mermaid-content svg path.pieCircle:nth-of-type(8n + 3) { fill: var(--chart-3); }
+.mermaid-content svg path.pieCircle:nth-of-type(8n + 4) { fill: var(--chart-4); }
+.mermaid-content svg path.pieCircle:nth-of-type(8n + 5) { fill: var(--chart-5); }
+.mermaid-content svg path.pieCircle:nth-of-type(8n + 6) { fill: var(--chart-6); }
+.mermaid-content svg path.pieCircle:nth-of-type(8n + 7) { fill: var(--chart-7); }
+.mermaid-content svg path.pieCircle:nth-of-type(8n + 8) { fill: var(--chart-8); }
+
+.mermaid-content svg .legend:nth-of-type(8n + 1) rect {
+  fill: var(--chart-1) !important;
+  stroke: var(--chart-1) !important;
+}
+
+.mermaid-content svg .legend:nth-of-type(8n + 2) rect {
+  fill: var(--chart-2) !important;
+  stroke: var(--chart-2) !important;
+}
+
+.mermaid-content svg .legend:nth-of-type(8n + 3) rect {
+  fill: var(--chart-3) !important;
+  stroke: var(--chart-3) !important;
+}
+
+.mermaid-content svg .legend:nth-of-type(8n + 4) rect {
+  fill: var(--chart-4) !important;
+  stroke: var(--chart-4) !important;
+}
+
+.mermaid-content svg .legend:nth-of-type(8n + 5) rect {
+  fill: var(--chart-5) !important;
+  stroke: var(--chart-5) !important;
+}
+
+.mermaid-content svg .legend:nth-of-type(8n + 6) rect {
+  fill: var(--chart-6) !important;
+  stroke: var(--chart-6) !important;
+}
+
+.mermaid-content svg .legend:nth-of-type(8n + 7) rect {
+  fill: var(--chart-7) !important;
+  stroke: var(--chart-7) !important;
+}
+
+.mermaid-content svg .legend:nth-of-type(8n + 8) rect {
+  fill: var(--chart-8) !important;
+  stroke: var(--chart-8) !important;
+}
+
+.mermaid-content svg marker path {
+  fill: var(--muted);
+  stroke: var(--muted);
+}
+
+.mermaid-content svg g.node .outer-path path {
+  fill: var(--bg);
+  stroke: var(--border-strong);
+}
+
+.mermaid-content svg g.divider path { stroke: var(--border-strong); }
+
 @media (max-width: 520px) {
-  html { font-size: 16px; }
+  html { font-size: 15px; }
 
   .shell {
-    width: min(100% - 24px, 780px);
+    width: min(100% - 24px, var(--shell-width));
     padding-top: 18px;
   }
 
@@ -1011,9 +1296,14 @@ button:active {
 export const VIEW_SCRIPT = `
 (() => {
   const diagrams = Array.from(document.querySelectorAll("[data-mermaid]"));
+  const sources = diagrams.map((diagram) =>
+    diagram.querySelector(".mermaid-source")?.textContent || ""
+  );
   let overlay = null;
   let overlayController = null;
   let overlayPanZoom = null;
+  let renderPass = 0;
+  let passController = null;
 
   if (!diagrams.length) return;
 
@@ -1022,21 +1312,141 @@ export const VIEW_SCRIPT = `
     return;
   }
 
-  window.mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: "strict",
-    theme: "base",
-    themeVariables: {
-      background: "#ffffff",
-      mainBkg: "#ffffff",
-      primaryColor: "#ffffff",
-      primaryTextColor: "#111111",
-      primaryBorderColor: "#111111",
-      lineColor: "#333333",
-      secondaryColor: "#ffffff",
-      tertiaryColor: "#ffffff"
-    }
-  });
+  // RaggioProietto palette: coral on grayscale surfaces with hairlines.
+  const PALETTE = {
+    light: {
+      darkMode: false,
+      surface: "#ffffff",
+      card: "#f7f7f7",
+      elevated: "#efefef",
+      text: "#1a1a1a",
+      muted: "#6b6b6b",
+      border: "#e4e4e4",
+      accent: "#ff6363",
+      onAccent: "#101010",
+      onChart: "#ffffff",
+      done: "#efefef",
+      scales: ["#b12424", "#c75d07", "#c7920e", "#006b4f", "#0f7a75", "#0b6eaa", "#6e56cf", "#c41d7f"],
+    },
+    dark: {
+      darkMode: true,
+      surface: "#101010",
+      card: "#141414",
+      elevated: "#1a1a1a",
+      text: "#f4f4f6",
+      muted: "#9c9c9d",
+      border: "#242728",
+      accent: "#ff6363",
+      onAccent: "#101010",
+      onChart: "#101010",
+      done: "#9c9c9d",
+      scales: ["#ff6363", "#ff9217", "#ffc531", "#59d499", "#52eee5", "#56c2ff", "#c7a6ff", "#cf2f98"],
+    },
+  };
+
+  const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+
+  function themeVariables(palette) {
+    const vars = {
+      darkMode: palette.darkMode,
+      background: palette.card,
+      fontFamily: "Inter, 'Segoe UI', -apple-system, system-ui, sans-serif",
+      fontSize: "16px",
+      textColor: palette.text,
+      mainBkg: palette.surface,
+      primaryColor: palette.surface,
+      primaryTextColor: palette.text,
+      primaryBorderColor: palette.border,
+      secondaryColor: palette.card,
+      secondaryTextColor: palette.text,
+      secondaryBorderColor: palette.border,
+      tertiaryColor: palette.elevated,
+      tertiaryTextColor: palette.text,
+      tertiaryBorderColor: palette.border,
+      nodeBorder: palette.border,
+      nodeTextColor: palette.text,
+      lineColor: palette.muted,
+      titleColor: palette.text,
+      clusterBkg: palette.card,
+      clusterBorder: palette.border,
+      edgeLabelBackground: palette.surface,
+      labelBackgroundColor: palette.card,
+      /* Sequence diagrams */
+      actorBkg: palette.surface,
+      actorBorder: palette.border,
+      actorTextColor: palette.text,
+      actorLineColor: palette.muted,
+      signalColor: palette.muted,
+      signalTextColor: palette.text,
+      labelBoxBkgColor: palette.surface,
+      labelBoxBorderColor: palette.border,
+      labelTextColor: palette.text,
+      loopTextColor: palette.text,
+      noteBkgColor: palette.elevated,
+      noteBorderColor: palette.border,
+      noteTextColor: palette.text,
+      activationBkgColor: palette.elevated,
+      activationBorderColor: palette.border,
+      sequenceNumberColor: palette.onAccent,
+      /* State and class diagrams */
+      altBackground: palette.card,
+      compositeBackground: palette.card,
+      compositeBorder: palette.border,
+      transitionColor: palette.muted,
+      transitionLabelColor: palette.text,
+      stateBkg: palette.surface,
+      stateBorder: palette.border,
+      /* Gantt */
+      sectionBkgColor: palette.card,
+      altSectionBkgColor: palette.surface,
+      sectionBkgColor2: palette.card,
+      taskBkgColor: palette.accent,
+      taskBorderColor: palette.accent,
+      taskTextColor: palette.onAccent,
+      taskTextDarkColor: palette.onAccent,
+      taskTextOutsideColor: palette.text,
+      activeTaskBkgColor: palette.accent,
+      activeTaskBorderColor: palette.accent,
+      doneTaskBkgColor: palette.done,
+      doneTaskBorderColor: palette.done,
+      gridColor: palette.border,
+      todayLineColor: palette.accent,
+      /* Git graph */
+      commitLabelColor: palette.text,
+      commitLabelBackground: palette.elevated,
+      tagLabelColor: palette.text,
+      tagLabelBackground: palette.elevated,
+      tagLabelBorder: palette.border,
+      /* Pie */
+      pieTitleTextColor: palette.text,
+      pieLegendTextColor: palette.muted,
+      pieSectionTextColor: palette.onChart,
+      pieStrokeColor: palette.surface,
+      pieOuterStrokeColor: palette.border,
+      pieOuterStrokeWidth: "1px",
+      pieOpacity: "1",
+    };
+
+    palette.scales.forEach((color, index) => {
+      vars["pie" + (index + 1)] = color;
+      vars["cScale" + index] = color;
+      vars["git" + index] = color;
+      vars["gitInv" + index] = palette.card;
+    });
+
+    return vars;
+  }
+
+  function initializeMermaid() {
+    window.mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      themeVariables: themeVariables(
+        scheme.matches ? PALETTE.dark : PALETTE.light,
+      ),
+    });
+  }
 
   function contentSize(content) {
     const svg = content.querySelector("svg");
@@ -1533,8 +1943,7 @@ export const VIEW_SCRIPT = `
     frame.focus();
   }
 
-  async function renderDiagram(diagram, index) {
-    const source = diagram.querySelector(".mermaid-source")?.textContent || "";
+  async function renderDiagram(diagram, source, index, signal) {
     const frame = document.createElement("div");
     const content = document.createElement("div");
     const open = document.createElement("button");
@@ -1552,8 +1961,8 @@ export const VIEW_SCRIPT = `
       const result = await window.mermaid.render("mermaid-" + Date.now() + "-" + index, source);
       const svgHtml = result.svg;
       content.innerHTML = result.svg;
-      attachPanZoom(frame, content, { dynamicHeight: true });
-      open.addEventListener("click", () => openFullscreen(svgHtml));
+      attachPanZoom(frame, content, { dynamicHeight: true, signal });
+      open.addEventListener("click", () => openFullscreen(svgHtml), { signal });
     } catch {
       const pre = document.createElement("pre");
       pre.className = "mermaid-error";
@@ -1562,7 +1971,33 @@ export const VIEW_SCRIPT = `
     }
   }
 
-  diagrams.forEach((diagram, index) => renderDiagram(diagram, index));
+  async function renderDiagrams() {
+    const pass = ++renderPass;
+
+    if (passController) passController.abort();
+    passController = new AbortController();
+
+    initializeMermaid();
+
+    for (let index = 0; index < diagrams.length; index += 1) {
+      if (pass !== renderPass) return;
+      await renderDiagram(
+        diagrams[index],
+        sources[index],
+        index,
+        passController.signal,
+      );
+    }
+  }
+
+  renderDiagrams();
+
+  if (typeof scheme.addEventListener === "function") {
+    scheme.addEventListener("change", () => {
+      closeFullscreen();
+      renderDiagrams();
+    });
+  }
 })();
 `;
 
