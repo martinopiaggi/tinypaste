@@ -72,7 +72,7 @@ md.renderer.rules.fence = (tokens, index, options, env, self) => {
   const language = token.info.trim().split(/\s+/)[0].toLowerCase();
 
   if (language === "mermaid" || language === "mmd") {
-    return `<figure class="mermaid-diagram" data-mermaid><pre class="mermaid-source">${
+    return `<figure class="diagram" data-diagram><pre class="diagram-source">${
       escapeHtml(token.content)
     }</pre></figure>`;
   }
@@ -403,12 +403,7 @@ function viewPage(paste, canonicalUrl) {
     `<main class="shell">
   <article class="markdown">${renderMarkdown(paste.markdown)}</article>
 </main>`,
-    `<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
-<script type="module">
-import mermaid from "https://esm.sh/mermaid@11.14.0";
-window.mermaid = mermaid;
-await import("/view.js");
-</script>`,
+    `<script type="module" src="/view.js"></script>`,
     `<meta name="description" content="${description}">
 <link rel="canonical" href="${url}">
 <meta property="og:type" content="article">
@@ -1087,7 +1082,40 @@ button:active { background: var(--accent-hover); }
 
 .markdown tr:last-child td { border-bottom: 0; }
 
-.mermaid-diagram {
+/* Pele renders Mermaid syntax to SVG and reads these variables, so a
+   diagram follows the RaggioProietto palette in both color schemes without
+   being re-rendered. */
+:root {
+  --pele-bg: var(--bg);
+  --pele-fg: var(--text);
+  --pele-muted: var(--muted);
+  --pele-line: var(--muted);
+  --pele-surface: var(--bg);
+  --pele-surface-alt: var(--elevated);
+  --pele-border: var(--border-strong);
+  --pele-accent: var(--accent);
+  --pele-critical: var(--danger);
+  --pele-error: var(--danger);
+  --pele-series-1: var(--chart-1);
+  --pele-series-2: var(--chart-2);
+  --pele-series-3: var(--chart-3);
+  --pele-series-4: var(--chart-4);
+  --pele-series-5: var(--chart-5);
+  --pele-series-6: var(--chart-6);
+  --pele-series-7: var(--chart-7);
+  --pele-series-8: var(--chart-8);
+  --pele-font: var(--font-ui);
+  --pele-font-mono: var(--font-mono);
+  --pele-radius: var(--radius-s);
+  --pele-title-weight: 600;
+  --pele-heading-weight: 600;
+  /* Keep Pele's zoom buttons clear of the "open" button in the corner. */
+  --pele-zoom-top: auto;
+  --pele-zoom-right: 8px;
+  --pele-zoom-bottom: 8px;
+}
+
+.diagram {
   position: relative;
   margin: 0 0 1.45rem;
   border: 1px solid var(--border);
@@ -1096,7 +1124,9 @@ button:active { background: var(--accent-hover); }
   overflow: hidden;
 }
 
-.mermaid-source {
+.diagram-error { border-color: var(--danger); }
+
+.diagram .diagram-source {
   margin: 0;
   border: 0;
   border-radius: 0;
@@ -1105,26 +1135,16 @@ button:active { background: var(--accent-hover); }
   color: var(--muted);
 }
 
-.mermaid-frame {
+.diagram-frame {
   position: relative;
-  height: clamp(260px, 56vh, 620px);
-  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
   background: var(--secondary);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
 }
 
-.mermaid-frame:active { cursor: grabbing; }
-.mermaid-frame.is-grabbing { cursor: grabbing; }
-
-.mermaid-frame:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: -2px;
-}
-
-button.mermaid-open,
-button.mermaid-close {
+button.diagram-open,
+button.diagram-close {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-s);
   background: color-mix(in srgb, var(--bg) 72%, transparent);
@@ -1141,49 +1161,21 @@ button.mermaid-close {
   backdrop-filter: blur(8px);
 }
 
-button.mermaid-open {
+button.diagram-open {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 2;
 }
 
-button.mermaid-open:hover,
-button.mermaid-close:hover {
+button.diagram-open:hover,
+button.diagram-close:hover {
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   border-color: var(--accent);
   color: var(--text);
 }
 
-.mermaid-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.mermaid-content svg {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.mermaid-error {
-  padding: 12px 14px;
-  color: var(--danger);
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-}
-
-.mermaid-fullscreen {
+.diagram-fullscreen {
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -1192,91 +1184,29 @@ button.mermaid-close:hover {
   background: var(--bg);
 }
 
-.mermaid-fullscreen[hidden] { display: none; }
+.diagram-fullscreen[hidden] { display: none; }
 
-.mermaid-fullscreen-bar {
+.diagram-fullscreen-bar {
   display: flex;
   justify-content: flex-end;
   border-bottom: 1px solid var(--border);
   padding: 8px;
 }
 
-.mermaid-fullscreen-frame {
+.diagram-fullscreen-frame {
   position: relative;
   overflow: hidden;
   background: var(--bg);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
 }
 
-.mermaid-fullscreen-frame:active { cursor: grabbing; }
-.mermaid-fullscreen-frame.is-grabbing { cursor: grabbing; }
-
-/* Mermaid's base theme hardcodes a few diagram parts that ignore
-   themeVariables: pie slice and legend colours (pie1..12), the class
-   diagram cScale boxes and the arrowheads. Presentation attributes lose
-   to stylesheet rules and inline styles need !important, so pin them. */
-.mermaid-content svg path.pieCircle:nth-of-type(8n + 1) { fill: var(--chart-1); }
-.mermaid-content svg path.pieCircle:nth-of-type(8n + 2) { fill: var(--chart-2); }
-.mermaid-content svg path.pieCircle:nth-of-type(8n + 3) { fill: var(--chart-3); }
-.mermaid-content svg path.pieCircle:nth-of-type(8n + 4) { fill: var(--chart-4); }
-.mermaid-content svg path.pieCircle:nth-of-type(8n + 5) { fill: var(--chart-5); }
-.mermaid-content svg path.pieCircle:nth-of-type(8n + 6) { fill: var(--chart-6); }
-.mermaid-content svg path.pieCircle:nth-of-type(8n + 7) { fill: var(--chart-7); }
-.mermaid-content svg path.pieCircle:nth-of-type(8n + 8) { fill: var(--chart-8); }
-
-.mermaid-content svg .legend:nth-of-type(8n + 1) rect {
-  fill: var(--chart-1) !important;
-  stroke: var(--chart-1) !important;
+.diagram-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
 }
-
-.mermaid-content svg .legend:nth-of-type(8n + 2) rect {
-  fill: var(--chart-2) !important;
-  stroke: var(--chart-2) !important;
-}
-
-.mermaid-content svg .legend:nth-of-type(8n + 3) rect {
-  fill: var(--chart-3) !important;
-  stroke: var(--chart-3) !important;
-}
-
-.mermaid-content svg .legend:nth-of-type(8n + 4) rect {
-  fill: var(--chart-4) !important;
-  stroke: var(--chart-4) !important;
-}
-
-.mermaid-content svg .legend:nth-of-type(8n + 5) rect {
-  fill: var(--chart-5) !important;
-  stroke: var(--chart-5) !important;
-}
-
-.mermaid-content svg .legend:nth-of-type(8n + 6) rect {
-  fill: var(--chart-6) !important;
-  stroke: var(--chart-6) !important;
-}
-
-.mermaid-content svg .legend:nth-of-type(8n + 7) rect {
-  fill: var(--chart-7) !important;
-  stroke: var(--chart-7) !important;
-}
-
-.mermaid-content svg .legend:nth-of-type(8n + 8) rect {
-  fill: var(--chart-8) !important;
-  stroke: var(--chart-8) !important;
-}
-
-.mermaid-content svg marker path {
-  fill: var(--muted);
-  stroke: var(--muted);
-}
-
-.mermaid-content svg g.node .outer-path path {
-  fill: var(--bg);
-  stroke: var(--border-strong);
-}
-
-.mermaid-content svg g.divider path { stroke: var(--border-strong); }
 
 @media (max-width: 520px) {
   html { font-size: 15px; }
@@ -1294,622 +1224,55 @@ button.mermaid-close:hover {
 `;
 
 export const VIEW_SCRIPT = `
+let pele = null;
+
+try {
+  pele = await import("https://cdn.jsdelivr.net/npm/pele@1.12.0/dist/pele.js");
+} catch {}
+
 (() => {
-  const diagrams = Array.from(document.querySelectorAll("[data-mermaid]"));
-  const sources = diagrams.map((diagram) =>
-    diagram.querySelector(".mermaid-source")?.textContent || ""
-  );
-  let overlay = null;
-  let overlayController = null;
-  let overlayPanZoom = null;
-  let renderPass = 0;
-  let passController = null;
+  const diagrams = Array.from(document.querySelectorAll("[data-diagram]"));
 
   if (!diagrams.length) return;
 
-  if (!window.mermaid) {
-    for (const diagram of diagrams) diagram.classList.add("mermaid-error");
+  const sources = diagrams.map((diagram) =>
+    diagram.querySelector(".diagram-source")?.textContent || ""
+  );
+  let overlay = null;
+  let overlayMounted = null;
+
+  if (!pele || typeof pele.mount !== "function") {
+    for (const diagram of diagrams) diagram.classList.add("diagram-error");
     return;
   }
 
-  // RaggioProietto palette: coral on grayscale surfaces with hairlines.
-  const PALETTE = {
-    light: {
-      darkMode: false,
-      surface: "#ffffff",
-      card: "#f7f7f7",
-      elevated: "#efefef",
-      text: "#1a1a1a",
-      muted: "#6b6b6b",
-      border: "#e4e4e4",
-      accent: "#ff6363",
-      onAccent: "#101010",
-      onChart: "#ffffff",
-      done: "#efefef",
-      scales: ["#b12424", "#c75d07", "#c7920e", "#006b4f", "#0f7a75", "#0b6eaa", "#6e56cf", "#c41d7f"],
-    },
-    dark: {
-      darkMode: true,
-      surface: "#101010",
-      card: "#141414",
-      elevated: "#1a1a1a",
-      text: "#f4f4f6",
-      muted: "#9c9c9d",
-      border: "#242728",
-      accent: "#ff6363",
-      onAccent: "#101010",
-      onChart: "#101010",
-      done: "#9c9c9d",
-      scales: ["#ff6363", "#ff9217", "#ffc531", "#59d499", "#52eee5", "#56c2ff", "#c7a6ff", "#cf2f98"],
-    },
-  };
-
-  const scheme = window.matchMedia("(prefers-color-scheme: dark)");
-
-  function themeVariables(palette) {
-    const vars = {
-      darkMode: palette.darkMode,
-      background: palette.card,
-      fontFamily: "Inter, 'Segoe UI', -apple-system, system-ui, sans-serif",
-      fontSize: "16px",
-      textColor: palette.text,
-      mainBkg: palette.surface,
-      primaryColor: palette.surface,
-      primaryTextColor: palette.text,
-      primaryBorderColor: palette.border,
-      secondaryColor: palette.card,
-      secondaryTextColor: palette.text,
-      secondaryBorderColor: palette.border,
-      tertiaryColor: palette.elevated,
-      tertiaryTextColor: palette.text,
-      tertiaryBorderColor: palette.border,
-      nodeBorder: palette.border,
-      nodeTextColor: palette.text,
-      lineColor: palette.muted,
-      titleColor: palette.text,
-      clusterBkg: palette.card,
-      clusterBorder: palette.border,
-      edgeLabelBackground: palette.surface,
-      labelBackgroundColor: palette.card,
-      /* Sequence diagrams */
-      actorBkg: palette.surface,
-      actorBorder: palette.border,
-      actorTextColor: palette.text,
-      actorLineColor: palette.muted,
-      signalColor: palette.muted,
-      signalTextColor: palette.text,
-      labelBoxBkgColor: palette.surface,
-      labelBoxBorderColor: palette.border,
-      labelTextColor: palette.text,
-      loopTextColor: palette.text,
-      noteBkgColor: palette.elevated,
-      noteBorderColor: palette.border,
-      noteTextColor: palette.text,
-      activationBkgColor: palette.elevated,
-      activationBorderColor: palette.border,
-      sequenceNumberColor: palette.onAccent,
-      /* State and class diagrams */
-      altBackground: palette.card,
-      compositeBackground: palette.card,
-      compositeBorder: palette.border,
-      transitionColor: palette.muted,
-      transitionLabelColor: palette.text,
-      stateBkg: palette.surface,
-      stateBorder: palette.border,
-      /* Gantt */
-      sectionBkgColor: palette.card,
-      altSectionBkgColor: palette.surface,
-      sectionBkgColor2: palette.card,
-      taskBkgColor: palette.accent,
-      taskBorderColor: palette.accent,
-      taskTextColor: palette.onAccent,
-      taskTextDarkColor: palette.onAccent,
-      taskTextOutsideColor: palette.text,
-      activeTaskBkgColor: palette.accent,
-      activeTaskBorderColor: palette.accent,
-      doneTaskBkgColor: palette.done,
-      doneTaskBorderColor: palette.done,
-      gridColor: palette.border,
-      todayLineColor: palette.accent,
-      /* Git graph */
-      commitLabelColor: palette.text,
-      commitLabelBackground: palette.elevated,
-      tagLabelColor: palette.text,
-      tagLabelBackground: palette.elevated,
-      tagLabelBorder: palette.border,
-      /* Pie */
-      pieTitleTextColor: palette.text,
-      pieLegendTextColor: palette.muted,
-      pieSectionTextColor: palette.onChart,
-      pieStrokeColor: palette.surface,
-      pieOuterStrokeColor: palette.border,
-      pieOuterStrokeWidth: "1px",
-      pieOpacity: "1",
-    };
-
-    palette.scales.forEach((color, index) => {
-      vars["pie" + (index + 1)] = color;
-      vars["cScale" + index] = color;
-      vars["git" + index] = color;
-      vars["gitInv" + index] = palette.card;
-    });
-
-    return vars;
-  }
-
-  function initializeMermaid() {
-    window.mermaid.initialize({
-      startOnLoad: false,
-      securityLevel: "strict",
-      theme: "base",
-      themeVariables: themeVariables(
-        scheme.matches ? PALETTE.dark : PALETTE.light,
-      ),
-    });
-  }
-
-  function contentSize(content) {
-    const svg = content.querySelector("svg");
-    if (!svg) return { width: 800, height: 480 };
-
-    const viewBox = svg.viewBox && svg.viewBox.baseVal;
-    const width = viewBox && viewBox.width ? viewBox.width : Number.parseFloat(svg.getAttribute("width")) || 800;
-    const height = viewBox && viewBox.height ? viewBox.height : Number.parseFloat(svg.getAttribute("height")) || 480;
-    return { width, height };
-  }
-
-  function normalizeSvg(content) {
-    const svg = content.querySelector("svg");
-    if (!svg) return;
-
-    svg.removeAttribute("style");
-    svg.setAttribute("width", "100%");
-    svg.setAttribute("height", "100%");
-    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-  }
-
-  function setFrameHeight(frame, content) {
-    const padding = 12;
-    const { width, height } = contentSize(content);
-    const fitScale = Math.min(1, (frame.clientWidth - padding * 2) / width);
-
-    frame.style.height = Math.round(Math.min(window.innerHeight * 0.72, Math.max(240, height * fitScale + padding * 2))) + "px";
-  }
-
-  function fitPanZoom(frame, content, panZoom, dynamicHeight) {
-    if (dynamicHeight) setFrameHeight(frame, content);
+  function destroy(instance) {
+    if (!instance) return;
 
     try {
-      panZoom.resize();
-      panZoom.fit();
-      panZoom.center();
+      instance.destroy();
     } catch {}
-  }
-
-  function resetPanZoom(panZoom) {
-    try {
-      panZoom.resetZoom();
-      panZoom.center();
-      panZoom.fit();
-    } catch {}
-  }
-
-  function destroyPanZoom(panZoom) {
-    if (!panZoom) return;
-
-    try {
-      panZoom.destroy();
-    } catch {}
-  }
-
-  function distance(first, second) {
-    return Math.hypot(first.x - second.x, first.y - second.y);
-  }
-
-  function midpoint(first, second) {
-    return {
-      x: (first.x + second.x) / 2,
-      y: (first.y + second.y) / 2,
-    };
-  }
-
-  function svgPointFromClient(svg, point) {
-    const svgPoint = svg.createSVGPoint();
-    svgPoint.x = point.x;
-    svgPoint.y = point.y;
-    return svgPoint.matrixTransform(svg.getScreenCTM().inverse());
-  }
-
-  function gestureFromPoints(points) {
-    if (points.length < 2) return null;
-
-    const first = points[0];
-    const second = points[1];
-
-    return {
-      center: midpoint(first, second),
-      distance: Math.max(1, distance(first, second)),
-    };
-  }
-
-  function preventEvent(event) {
-    if (event.cancelable) event.preventDefault();
-  }
-
-  function makeTouchEventsHandler(frame) {
-    const cleanup = [];
-
-    return {
-      haltEventListeners: ["touchstart", "touchmove", "touchend", "touchleave", "touchcancel"],
-      init: function (options) {
-        const svg = options.svgElement;
-        const panZoom = options.instance;
-        const activePointers = new Map();
-        let previousSinglePoint = null;
-        let previousGesture = null;
-        let tapStart = null;
-        let lastTap = null;
-
-        function add(target, type, handler, listenerOptions) {
-          target.addEventListener(type, handler, listenerOptions);
-          cleanup.push(function () {
-            target.removeEventListener(type, handler, listenerOptions);
-          });
-        }
-
-        function clearGesture() {
-          activePointers.clear();
-          previousSinglePoint = null;
-          previousGesture = null;
-          tapStart = null;
-          frame.classList.remove("is-grabbing");
-        }
-
-        function startTap(point) {
-          tapStart = {
-            x: point.x,
-            y: point.y,
-            moved: false,
-            multi: false,
-          };
-        }
-
-        function markTapMovement(point) {
-          if (tapStart && distance(tapStart, point) > 8) {
-            tapStart.moved = true;
-          }
-        }
-
-        function handleTap(point) {
-          const now = Date.now();
-
-          if (lastTap && now - lastTap.time <= 300 && distance(lastTap, point) <= 28) {
-            resetPanZoom(panZoom);
-            lastTap = null;
-            return;
-          }
-
-          lastTap = {
-            x: point.x,
-            y: point.y,
-            time: now,
-          };
-        }
-
-        function panBy(delta) {
-          if (delta.x || delta.y) {
-            panZoom.panBy(delta);
-          }
-        }
-
-        function applyMultiPointGesture(points) {
-          const nextGesture = gestureFromPoints(points);
-          if (!nextGesture) return;
-
-          if (previousGesture) {
-            const scale = Math.min(4, Math.max(0.25, nextGesture.distance / previousGesture.distance));
-            panZoom.zoomAtPointBy(scale, svgPointFromClient(svg, nextGesture.center));
-            panBy({
-              x: nextGesture.center.x - previousGesture.center.x,
-              y: nextGesture.center.y - previousGesture.center.y,
-            });
-          }
-
-          previousGesture = nextGesture;
-        }
-
-        function usePoints(points) {
-          if (points.length === 1) {
-            const point = points[0];
-            markTapMovement(point);
-
-            if (previousSinglePoint) {
-              panBy({
-                x: point.x - previousSinglePoint.x,
-                y: point.y - previousSinglePoint.y,
-              });
-            }
-
-            previousSinglePoint = point;
-            previousGesture = null;
-            return;
-          }
-
-          if (points.length > 1) {
-            if (tapStart) tapStart.multi = true;
-            previousSinglePoint = null;
-            applyMultiPointGesture(points);
-          }
-        }
-
-        if (window.PointerEvent) {
-          function pointerPoint(event) {
-            return {
-              id: event.pointerId,
-              x: event.clientX,
-              y: event.clientY,
-            };
-          }
-
-          function currentPointerPoints() {
-            return Array.from(activePointers.values());
-          }
-
-          function onPointerDown(event) {
-            if (event.pointerType === "mouse") return;
-
-            preventEvent(event);
-
-            const point = pointerPoint(event);
-            activePointers.set(event.pointerId, point);
-            frame.classList.add("is-grabbing");
-
-            if (activePointers.size === 1) {
-              previousSinglePoint = point;
-              previousGesture = null;
-              startTap(point);
-            } else {
-              if (tapStart) tapStart.multi = true;
-              previousSinglePoint = null;
-              previousGesture = gestureFromPoints(currentPointerPoints());
-            }
-
-            if (frame.setPointerCapture) {
-              try {
-                frame.setPointerCapture(event.pointerId);
-              } catch {}
-            }
-          }
-
-          function onPointerMove(event) {
-            if (!activePointers.has(event.pointerId)) return;
-
-            preventEvent(event);
-
-            const point = pointerPoint(event);
-            activePointers.set(event.pointerId, point);
-            usePoints(currentPointerPoints());
-          }
-
-          function onPointerEnd(event) {
-            if (!activePointers.has(event.pointerId)) return;
-
-            preventEvent(event);
-
-            const point = pointerPoint(event);
-            markTapMovement(point);
-
-            if (tapStart && activePointers.size === 1 && !tapStart.moved && !tapStart.multi) {
-              handleTap(point);
-            }
-
-            activePointers.delete(event.pointerId);
-
-            if (frame.releasePointerCapture) {
-              try {
-                frame.releasePointerCapture(event.pointerId);
-              } catch {}
-            }
-
-            const points = currentPointerPoints();
-
-            if (!points.length) {
-              clearGesture();
-              return;
-            }
-
-            if (points.length === 1) {
-              previousSinglePoint = points[0];
-              previousGesture = null;
-            } else {
-              previousSinglePoint = null;
-              previousGesture = gestureFromPoints(points);
-            }
-          }
-
-          add(frame, "pointerdown", onPointerDown);
-          add(frame, "pointermove", onPointerMove);
-          add(frame, "pointerup", onPointerEnd);
-          add(frame, "pointercancel", onPointerEnd);
-          add(frame, "lostpointercapture", onPointerEnd);
-          return;
-        }
-
-        function touchPoint(touch) {
-          return {
-            id: touch.identifier,
-            x: touch.clientX,
-            y: touch.clientY,
-          };
-        }
-
-        function touchPoints(touches) {
-          return Array.from(touches).map(touchPoint);
-        }
-
-        function syncTouchState(points) {
-          if (!points.length) {
-            clearGesture();
-            return;
-          }
-
-          if (points.length === 1) {
-            previousSinglePoint = points[0];
-            previousGesture = null;
-          } else {
-            previousSinglePoint = null;
-            previousGesture = gestureFromPoints(points);
-          }
-        }
-
-        function onTouchStart(event) {
-          preventEvent(event);
-
-          const points = touchPoints(event.touches);
-          frame.classList.add("is-grabbing");
-
-          if (points.length === 1) {
-            previousSinglePoint = points[0];
-            previousGesture = null;
-            startTap(points[0]);
-            return;
-          }
-
-          if (tapStart) tapStart.multi = true;
-          syncTouchState(points);
-        }
-
-        function onTouchMove(event) {
-          preventEvent(event);
-          usePoints(touchPoints(event.touches));
-        }
-
-        function onTouchEnd(event) {
-          preventEvent(event);
-
-          if (event.changedTouches.length) {
-            const point = touchPoint(event.changedTouches[0]);
-            markTapMovement(point);
-
-            if (tapStart && !event.touches.length && !tapStart.moved && !tapStart.multi) {
-              handleTap(point);
-            }
-          }
-
-          syncTouchState(touchPoints(event.touches));
-        }
-
-        const activeTouchListener = { passive: false };
-        add(frame, "touchstart", onTouchStart, activeTouchListener);
-        add(frame, "touchmove", onTouchMove, activeTouchListener);
-        add(frame, "touchend", onTouchEnd, activeTouchListener);
-        add(frame, "touchcancel", onTouchEnd, activeTouchListener);
-      },
-      destroy: function () {
-        while (cleanup.length) cleanup.pop()();
-        frame.classList.remove("is-grabbing");
-      },
-    };
-  }
-
-  function attachPanZoom(frame, content, options = {}) {
-    const dynamicHeight = Boolean(options.dynamicHeight);
-    const listenerOptions = options.signal
-      ? { signal: options.signal }
-      : undefined;
-    const svg = content.querySelector("svg");
-
-    frame.tabIndex = 0;
-    frame.setAttribute("role", "img");
-    frame.setAttribute("aria-label", "Mermaid diagram. Drag to pan. Wheel or pinch to zoom. Double-click or double-tap to reset.");
-
-    if (dynamicHeight) setFrameHeight(frame, content);
-    normalizeSvg(content);
-
-    if (!svg || typeof window.svgPanZoom !== "function") {
-      return null;
-    }
-
-    const panZoom = window.svgPanZoom(svg, {
-      zoomEnabled: true,
-      controlIconsEnabled: false,
-      fit: true,
-      center: true,
-      contain: false,
-      minZoom: 0.2,
-      maxZoom: 12,
-      zoomScaleSensitivity: 0.35,
-      dblClickZoomEnabled: false,
-      mouseWheelZoomEnabled: true,
-      customEventsHandler: makeTouchEventsHandler(frame),
-    });
-
-    const refit = () => fitPanZoom(frame, content, panZoom, dynamicHeight);
-    const releaseGrab = () => frame.classList.remove("is-grabbing");
-
-    requestAnimationFrame(refit);
-    window.addEventListener("resize", refit, listenerOptions);
-    frame.addEventListener("mousedown", () => frame.classList.add("is-grabbing"), listenerOptions);
-    frame.addEventListener("mouseup", releaseGrab, listenerOptions);
-    frame.addEventListener("mouseleave", releaseGrab, listenerOptions);
-    svg.addEventListener("dblclick", (event) => {
-      event.preventDefault();
-      resetPanZoom(panZoom);
-    }, listenerOptions);
-
-    frame.addEventListener("keydown", (event) => {
-      if (event.key === "+" || event.key === "=") {
-        event.preventDefault();
-        panZoom.zoomBy(1.2);
-      }
-
-      if (event.key === "-") {
-        event.preventDefault();
-        panZoom.zoomBy(1 / 1.2);
-      }
-
-      if (event.key === "0" || event.key === "Escape") {
-        event.preventDefault();
-        resetPanZoom(panZoom);
-      }
-    }, listenerOptions);
-
-    if (options.signal) {
-      options.signal.addEventListener("abort", () => {
-        destroyPanZoom(panZoom);
-      }, { once: true });
-    }
-
-    return panZoom;
   }
 
   function closeFullscreen() {
     if (!overlay) return;
 
-    const panZoom = overlayPanZoom;
-    overlayPanZoom = null;
-
-    if (overlayController) {
-      overlayController.abort();
-      overlayController = null;
-    } else {
-      destroyPanZoom(panZoom);
-    }
-
+    destroy(overlayMounted);
+    overlayMounted = null;
     overlay.hidden = true;
-    overlay.querySelector(".mermaid-fullscreen-frame").replaceChildren();
+    overlay.querySelector(".diagram-fullscreen-frame").replaceChildren();
   }
 
   function ensureOverlay() {
     if (overlay) return overlay;
 
     overlay = document.createElement("div");
-    overlay.className = "mermaid-fullscreen";
+    overlay.className = "diagram-fullscreen";
     overlay.hidden = true;
-    overlay.innerHTML = '<div class="mermaid-fullscreen-bar"><button class="mermaid-close" type="button">close</button></div><div class="mermaid-fullscreen-frame"></div>';
+    overlay.innerHTML = '<div class="diagram-fullscreen-bar"><button class="diagram-close" type="button">close</button></div><div class="diagram-fullscreen-frame"></div>';
     document.body.append(overlay);
 
-    overlay.querySelector(".mermaid-close").addEventListener("click", closeFullscreen);
+    overlay.querySelector(".diagram-close").addEventListener("click", closeFullscreen);
 
     document.addEventListener("keydown", (event) => {
       if (!overlay.hidden && event.key === "Escape") {
@@ -1920,84 +1283,44 @@ export const VIEW_SCRIPT = `
     return overlay;
   }
 
-  function openFullscreen(svgHtml) {
+  function openFullscreen(source) {
     const currentOverlay = ensureOverlay();
-    const frame = currentOverlay.querySelector(".mermaid-fullscreen-frame");
+    const frame = currentOverlay.querySelector(".diagram-fullscreen-frame");
     const content = document.createElement("div");
 
-    if (overlayController) {
-      overlayController.abort();
-      overlayController = null;
-      overlayPanZoom = null;
-    }
-
-    overlayController = new AbortController();
-    content.className = "mermaid-content";
-    content.innerHTML = svgHtml;
+    destroy(overlayMounted);
+    content.className = "diagram-content";
     frame.replaceChildren(content);
     currentOverlay.hidden = false;
-    overlayPanZoom = attachPanZoom(frame, content, {
-      dynamicHeight: false,
-      signal: overlayController.signal,
+
+    overlayMounted = pele.mount(content, source, {
+      images: false,
+      zoom: { always: true, maxScale: 4 },
     });
-    frame.focus();
   }
 
-  async function renderDiagram(diagram, source, index, signal) {
+  function renderDiagram(diagram, source) {
     const frame = document.createElement("div");
-    const content = document.createElement("div");
     const open = document.createElement("button");
 
-    frame.className = "mermaid-frame";
-    content.className = "mermaid-content";
-    open.className = "mermaid-open";
+    frame.className = "diagram-frame";
+    open.className = "diagram-open";
     open.type = "button";
     open.textContent = "open";
-    open.setAttribute("aria-label", "Open Mermaid diagram fullscreen");
-    frame.append(content);
+    open.setAttribute("aria-label", "Open diagram fullscreen");
+
     diagram.replaceChildren(open, frame);
 
-    try {
-      const result = await window.mermaid.render("mermaid-" + Date.now() + "-" + index, source);
-      const svgHtml = result.svg;
-      content.innerHTML = result.svg;
-      attachPanZoom(frame, content, { dynamicHeight: true, signal });
-      open.addEventListener("click", () => openFullscreen(svgHtml), { signal });
-    } catch {
-      const pre = document.createElement("pre");
-      pre.className = "mermaid-error";
-      pre.textContent = source;
-      diagram.replaceChildren(pre);
-    }
-  }
-
-  async function renderDiagrams() {
-    const pass = ++renderPass;
-
-    if (passController) passController.abort();
-    passController = new AbortController();
-
-    initializeMermaid();
-
-    for (let index = 0; index < diagrams.length; index += 1) {
-      if (pass !== renderPass) return;
-      await renderDiagram(
-        diagrams[index],
-        sources[index],
-        index,
-        passController.signal,
-      );
-    }
-  }
-
-  renderDiagrams();
-
-  if (typeof scheme.addEventListener === "function") {
-    scheme.addEventListener("change", () => {
-      closeFullscreen();
-      renderDiagrams();
+    pele.mount(frame, source, {
+      images: false,
+      onError: () => diagram.classList.add("diagram-error"),
+      onRender: () => diagram.classList.remove("diagram-error"),
     });
+
+    open.addEventListener("click", () => openFullscreen(source));
   }
+
+  diagrams.forEach((diagram, index) => renderDiagram(diagram, sources[index]));
 })();
 `;
 

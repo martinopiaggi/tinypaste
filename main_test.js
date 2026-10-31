@@ -1,4 +1,9 @@
-import { createHandler, socialPreviewFromMarkdown } from "./main.js";
+import {
+  createHandler,
+  renderMarkdown,
+  socialPreviewFromMarkdown,
+  VIEW_SCRIPT,
+} from "./main.js";
 
 function assertEquals(actual, expected) {
   if (actual !== expected) {
@@ -81,4 +86,53 @@ Deno.test("bin page includes escaped Open Graph and Twitter metadata", async () 
     html,
     '<link rel="canonical" href="https://tnypst.example/abc1234">',
   );
+});
+
+Deno.test("Mermaid fences render a Pele diagram figure", () => {
+  const html = renderMarkdown("```mermaid\nflowchart LR\n  A --> B\n```");
+
+  assertStringIncludes(html, '<figure class="diagram" data-diagram>');
+  assertStringIncludes(html, '<pre class="diagram-source">');
+  assertStringIncludes(html, "flowchart LR");
+  assertEquals(html.includes("mermaid-diagram"), false);
+});
+
+Deno.test("paste pages load Pele instead of Mermaid.js", async () => {
+  const kv = {
+    get() {
+      return Promise.resolve({
+        value: { createdAt: "2026-09-04T00:00:00.000Z", markdown: "# Diagram" },
+      });
+    },
+  };
+  const handler = createHandler({
+    kv,
+    config: {
+      baseUrl: "https://tnypst.example",
+      idLength: 7,
+      maxMarkdownBytes: 1024,
+      port: 3000,
+      rateLimitPosts: 20,
+      rateLimitWindowSeconds: 3600,
+    },
+  });
+
+  const response = await handler(
+    new Request("https://internal.example/abc1234"),
+  );
+  const html = await response.text();
+
+  assertStringIncludes(html, '<script type="module" src="/view.js"></script>');
+  assertEquals(html.includes("mermaid@"), false);
+  assertEquals(html.includes("svg-pan-zoom"), false);
+});
+
+Deno.test("view script renders diagrams with Pele", () => {
+  assertStringIncludes(
+    VIEW_SCRIPT,
+    'import("https://cdn.jsdelivr.net/npm/pele@1.12.0/dist/pele.js")',
+  );
+  assertStringIncludes(VIEW_SCRIPT, "pele.mount(");
+  assertStringIncludes(VIEW_SCRIPT, 'querySelectorAll("[data-diagram]")');
+  assertEquals(VIEW_SCRIPT.includes("mermaid"), false);
 });

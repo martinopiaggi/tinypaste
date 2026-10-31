@@ -2,7 +2,7 @@
 
 Tiny public Markdown pastebin.
 
-- Rendered Markdown, Mermaid as zoomable SVG, LaTeX math
+- Rendered Markdown, Mermaid as zoomable SVG via [Pele](https://pele.run), LaTeX math
 - No account. No token.
 - Works from any shell, script, or agent.
 - Self-hosts free on Deno Deploy in under a minute.
